@@ -24,7 +24,7 @@ class PlaceCells(object):
         self.us = torch.tensor(np.vstack([usx, usy]).T)
         # If using a GPU, put on GPU
         self.us = self.us.to(self.device)
-        # self.us = torch.tensor(np.load('models/example_pc_centers.npy')).cuda()
+        self.us = torch.tensor(np.load('models/example_pc_centers.npy'))# .cuda()
 
     def get_activation(self, pos):
         '''
