@@ -78,12 +78,12 @@ class RNN(torch.nn.Module):
 
         return loss, err
     
-    # 加上这个后重新生成RNN报错TypeError: super(type, obj): obj must be an instance or subtype of type？
-    # def set_weights(self, weights):
-    #     self.encoder.weight.data = torch.tensor(weights[0])
-    #     self.RNN.weight_ih_l0.data = torch.tensor(weights[1])
-    #     self.RNN.weight_hh_l0.data = torch.tensor(weights[2])
-    #     self.decoder.weight.data = torch.tensor(weights[3])
+    # 从example中设置权重（不过为啥example给的转置的？）
+    def set_weights(self, weights):
+        self.encoder.weight.data = torch.tensor(weights[0].T)
+        self.RNN.weight_ih_l0.data = torch.tensor(weights[1].T)
+        self.RNN.weight_hh_l0.data = torch.tensor(weights[2].T)
+        self.decoder.weight.data = torch.tensor(weights[3].T)
 
         # model.encoder.weight.data 对应于 weights[0]，形状为 (512, 4096)。
         # model.RNN.weight_ih_l0.data 对应于 weights[1]，形状为 (2, 4096)。
