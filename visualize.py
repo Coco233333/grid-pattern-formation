@@ -68,7 +68,7 @@ def plot_ratemaps(activations, n_plots, cmap='jet', smooth=True, width=16):
 
 
 def compute_ratemaps(model, trajectory_generator, options, res=20, n_avg=None, Ng=512, idxs=None):
-    '''Compute spatial firing fields'''
+    '''Compute spatial firing fields and orientation tuning'''
 
     if not n_avg:
         n_avg = 1000 // options.sequence_length
@@ -83,11 +83,16 @@ def compute_ratemaps(model, trajectory_generator, options, res=20, n_avg=None, N
     activations = np.zeros([Ng, res, res]) 
     counts  = np.zeros([res, res])
 
+    activations_theta = np.zeros([Ng, res*2])
+    bins = np.linspace(-np.pi, np.pi, res*2)
+    counts_theta  = np.zeros([res*2])
+
     for index in range(n_avg):
-        inputs, pos_batch, _ = trajectory_generator.get_test_batch()
+        inputs, pos_batch, _, theta_batch = trajectory_generator.get_test_batch()
         g_batch = model.g(inputs).detach().cpu().numpy()
         
         pos_batch = np.reshape(pos_batch.cpu(), [-1, 2])
+        theta_batch = np.reshape(theta_batch.cpu(), [-1]).numpy()
         g_batch = g_batch[:,:,idxs].reshape(-1, Ng)
         
         g[index] = g_batch
@@ -99,23 +104,26 @@ def compute_ratemaps(model, trajectory_generator, options, res=20, n_avg=None, N
         for i in range(options.batch_size*options.sequence_length):
             x = x_batch[i]
             y = y_batch[i]
+            theta_idx = np.abs(bins - theta_batch[i]).argmin()
             if x >=0 and x < res and y >=0 and y < res:
                 counts[int(x), int(y)] += 1
                 activations[:, int(x), int(y)] += g_batch[i, :]
-
+                activations_theta[:, theta_idx] += g_batch[i, :]
+                
     for x in range(res):
         for y in range(res):
             if counts[x, y] > 0:
                 activations[:, x, y] /= counts[x, y]
+
+    for i in range(len(bins)):
+        if counts_theta[i] > 0:
+            activations_theta[:, i] /= counts_theta[i]
                 
     g = g.reshape([-1, Ng])
     pos = pos.reshape([-1, 2])
 
-    # # scipy binned_statistic_2d is slightly slower
-    # activations = scipy.stats.binned_statistic_2d(pos[:,0], pos[:,1], g.T, bins=res)[0]
     rate_map = activations.reshape(Ng, -1)
-
-    return activations, rate_map, g, pos
+    return activations, rate_map, g, pos, activations_theta
 
 
 def save_ratemaps(model, trajectory_generator, options, step, res=20, n_avg=None):

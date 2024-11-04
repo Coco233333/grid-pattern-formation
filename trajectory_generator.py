@@ -132,7 +132,7 @@ class TrajectoryGenerator(object):
             yield (inputs, place_outputs, pos)
 
     def get_test_batch(self, batch_size=None, box_width=None, box_height=None):
-        ''' For testing performance, returns a batch of smample trajectories'''
+        ''' For testing performance, returns a batch of sample trajectories'''
         if not batch_size:
             batch_size = self.options.batch_size
         if not box_width:
@@ -156,7 +156,10 @@ class TrajectoryGenerator(object):
         init_pos = init_pos.to(self.options.device)
         init_actv = self.place_cells.get_activation(init_pos).squeeze()
 
+        hd = torch.tensor(traj['target_hd'], dtype=torch.float32).transpose(0, 1)
+        hd = hd.to(self.options.device)
+
         v = v.to(self.options.device)
         inputs = (v, init_actv)
 
-        return (inputs, pos, place_outputs)
+        return (inputs, pos, place_outputs, hd)
