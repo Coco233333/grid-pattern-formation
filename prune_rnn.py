@@ -28,17 +28,13 @@ class Pruner(object):
             err: Avg. decoded position error in cm.
         '''
 
-        prune_mask = np.ones(4096).astype("float32") # prune none
-        prune_inds = np.random.choice(mask, size = 100, replace = False)
-        prune_mask[prune_inds] = 0
-
         self.model.zero_grad()
-        loss, err = self.model.compute_loss_prune(inputs, pc_outputs, pos, prune_mask)
+        loss, err = self.model.compute_loss_prune(inputs, pc_outputs, pos, mask)
         # loss, err = self.model.compute_loss(inputs, pc_outputs, pos)
         
         return loss.item(), err.item()
 
-    def prun(self, mask, n_steps=10):
+    def prun(self, mask, n_steps=10, mask_size=100):
         ''' 
         Train model on simulated trajectories.
 
@@ -47,18 +43,22 @@ class Pruner(object):
             save: If true, save a checkpoint after each epoch.
         '''
 
-        # Construct generator
-        gen = self.trajectory_generator.get_generator()
+        for i in range(mask_size):
+            prune_mask = np.ones(4096).astype("float32") # prune none
+            prune_inds = np.random.choice(mask, size = i, replace = False)
+            prune_mask[prune_inds] = 0
+            errs = 0
 
-        # tbar = tqdm(range(n_steps), leave=False)
-        for step_idx in range(n_steps):
-            inputs, pc_outputs, pos = next(gen)
-            loss, err = self.prun_step(inputs, pc_outputs, pos, mask)
-            self.loss.append(loss)
-            self.err.append(err)
+            # Construct generator
+            gen = self.trajectory_generator.get_generator()
 
-            # print('Step {}/{}. Err: {}cm'.format(
-            #     step_idx, n_steps,
-            #     np.round(100 * err, 2)))
+            # 每次修剪都迭代n_steps次
+            for j in range(n_steps):
+                inputs, pc_outputs, pos = next(gen)
+                _, err = self.prun_step(inputs, pc_outputs, pos, prune_mask)
+                errs+=err
+
+            errs/=n_steps
+            self.err.append(errs)
             
         return self.err
