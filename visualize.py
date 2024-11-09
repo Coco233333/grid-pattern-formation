@@ -108,6 +108,7 @@ def compute_ratemaps(model, trajectory_generator, options, res=20, n_avg=None, N
             if x >=0 and x < res and y >=0 and y < res:
                 counts[int(x), int(y)] += 1
                 activations[:, int(x), int(y)] += g_batch[i, :]
+                counts_theta[theta_idx] += 1
                 activations_theta[:, theta_idx] += g_batch[i, :]
                 
     for x in range(res):
@@ -115,9 +116,9 @@ def compute_ratemaps(model, trajectory_generator, options, res=20, n_avg=None, N
             if counts[x, y] > 0:
                 activations[:, x, y] /= counts[x, y]
 
-    for i in range(len(bins)):
-        if counts_theta[i] > 0:
-            activations_theta[:, i] /= counts_theta[i]
+    for theta_idx in range(len(res*2)):
+        if counts_theta[theta_idx] > 0:
+            activations_theta[:, theta_idx] /= counts_theta[theta_idx]
                 
     g = g.reshape([-1, Ng])
     pos = pos.reshape([-1, 2])
