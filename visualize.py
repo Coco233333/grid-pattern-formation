@@ -116,7 +116,7 @@ def compute_ratemaps(model, trajectory_generator, options, res=20, n_avg=None, N
             if counts[x, y] > 0:
                 activations[:, x, y] /= counts[x, y]
 
-    for theta_idx in range(len(res*2)):
+    for theta_idx in range(res*2):
         if counts_theta[theta_idx] > 0:
             activations_theta[:, theta_idx] /= counts_theta[theta_idx]
                 
