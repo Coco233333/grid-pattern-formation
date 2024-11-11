@@ -158,3 +158,33 @@ class RNN(torch.nn.Module):
         err = torch.sqrt(((pos - pred_pos)**2).sum(-1)).mean()
 
         return loss, err
+
+    # 修剪read out层的神经元
+    def compute_loss_prune_read_out(self, inputs, pc_outputs, pos, mask):
+        '''
+        Compute avg. loss and decoding error.
+        Args:
+            inputs: Batch of 2d velocity inputs with shape [batch_size, sequence_length, 2].
+            pc_outputs: Ground truth place cell activations with shape 
+                [batch_size, sequence_length, Np].
+            pos: Ground truth 2d position with shape [batch_size, sequence_length, 2].
+
+        Returns:
+            loss: Avg. loss for this training batch.
+            err: Avg. decoded position error in cm.
+        '''
+        original_weights = self.decoder.weight.data.clone()
+
+        with torch.no_grad():
+            self.decoder.weight.data[:, mask] = 0
+
+        preds = self.predict(inputs)
+
+        # Compute decoding error
+        pred_pos = self.place_cells.get_nearest_cell_pos(preds)
+        err = torch.sqrt(((pos - pred_pos)**2).sum(-1)).mean()
+        
+        # 恢复原始权重
+        self.decoder.weight.data = original_weights
+
+        return err
